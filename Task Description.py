@@ -3,7 +3,7 @@
 import streamlit as st
 
 from functions.functions import (
-    centered_header
+    centered_header, load_data
 )
 
 # %%
@@ -12,19 +12,6 @@ st.set_page_config(page_title="Analytics: Fee Change Estimation", layout="wide",
 
 # Page 1 content
 centered_header("Analytics: Fee Change Estimation")
-
-st.markdown(
-    """
-    --- 
-    
-    ## Page Structure
-
-    - **Task Description**: This project aims to estimate the financial impact of introducing a new fee scheme that includes Volume Tiers, Staking Discounts, and Referral Rewards.
-    - **Fees Estimation**: This page contains the solution approach, key steps to solve the task, and the final calculated results.
-
-    Use the sidebar to navigate between pages and explore the full solution.
-    """
-)
 
 st.markdown(
     """
@@ -123,3 +110,11 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+# Upload data
+daily_trading_volume = load_data(file_name='daily_trading_volume')
+gmx_staked_last = load_data(file_name='gmx_staked_last')
+# fees_data = load_data(file_name='fees_data')
+# daily_borrowing_fees = load_data(file_name='daily_borrowing_fees')
+
+# %%

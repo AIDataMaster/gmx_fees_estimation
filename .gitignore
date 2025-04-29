@@ -1,1 +1,13 @@
-/venv/
+# Ignore virtual environments
+venv/
+.env/
+.venv/
+
+# Ignore Python bytecode and cache
+**/__pycache__/
+*.py[cod]
+*.pyo
+
+# Ignore VSCode settings and system files
+.vscode/
+*.DS_Store

@@ -51,6 +51,5 @@ st.write(
 
     ---
 
-    > *Final calculated outputs, tables, and charts will be added to this page after solving the task.*
     """
 )
