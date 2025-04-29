@@ -109,7 +109,7 @@ def plot_trading_volume_distribution(daily_trading_volume: pd.DataFrame):
 
     fig.update_traces(textposition='outside')
     fig.update_layout(
-        title_x=0.4,
+        title_x=0,
         xaxis_title='Segment',
         yaxis_title='Last 30-day Trading Volume / Total Count',
         uniformtext_minsize=8,
@@ -160,7 +160,7 @@ def plot_staked_amount_distribution(gmx_staked_last: pd.DataFrame):
 
     fig.update_traces(textposition='outside')
     fig.update_layout(
-        title_x=0.4,
+        title_x=0,
         xaxis_title='Staked Amount Segment',
         yaxis_title='Total Staked Amount',
         uniformtext_minsize=8,
