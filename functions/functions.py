@@ -17,40 +17,55 @@ from datetime import datetime, timedelta
 def centered_header(text):
     st.markdown(f"<h1 style='text-align: center;'>{text}</h1>", unsafe_allow_html=True)
 
-# Load data
+# Load data (supports split chunks for large files)
 def load_data(file_name, data_dir='./data'):
     """
-    Load transaction data from a parquet file.
-    
+    Load CSV data or split-chunked CSVs if file_name is 'fees_data' or 'gmx_staking'.
+
     Args:
-        data_dir (str): Directory where the data file is located.
-        file_name (str): Name of the parquet file to load.
+        file_name (str): Base file name or special name for chunked folders.
+        data_dir (str): Root directory of the data files or chunk folders.
 
     Returns:
-        pd.DataFrame: Loaded DataFrame from the parquet file.
+        pd.DataFrame: Loaded DataFrame.
     """
-    file_path = os.path.join(data_dir, f"{file_name}.csv")
-
-    # Check if the data is already in session state
     if file_name in st.session_state:
         return st.session_state[file_name]
 
-    if os.path.isfile(file_path):
-        # Show a progress spinner while loading
-        with st.spinner('Loading data...'):
-            start_time = time.time()  # Start time for performance measurement
-            
-            # Load data from file
-            dataset = pd.read_csv(file_path, engine='pyarrow')
-            elapsed_time = time.time() - start_time  # Calculate time taken to load data
+    # Map specific chunked files to their folder names
+    chunk_folder_map = {
+        'fees_data': 'fees',
+        'gmx_staking': 'staking'
+    }
 
-            # Save to session state
+    if file_name in chunk_folder_map:
+        folder_path = os.path.join(data_dir, chunk_folder_map[file_name])
+        if not os.path.isdir(folder_path):
+            st.error(f"Chunk folder not found: {folder_path}")
+            return None
+
+        with st.spinner(f"Loading chunked {file_name.replace('_', ' ')}..."):
+            chunks = []
+            for file in sorted(os.listdir(folder_path)):
+                if file.endswith('.csv'):
+                    chunk_path = os.path.join(folder_path, file)
+                    chunk = pd.read_csv(chunk_path)
+                    chunks.append(chunk)
+
+            if not chunks:
+                st.error(f"No CSV chunks found in: {folder_path}")
+                return None
+
+            dataset = pd.concat(chunks, ignore_index=True)
             st.session_state[file_name] = dataset
+            return dataset
 
-            # # Display time spent and data size
-            # st.write(f"Time spent loading data '{file_name}': {elapsed_time:.2f} seconds")
-            # st.write(f"Size of the table '{file_name}': {dataset.shape[0]:,} rows, {dataset.shape[1]:,} columns")
-
+    # Fallback: single file loading
+    file_path = os.path.join(data_dir, f"{file_name}.csv")
+    if os.path.isfile(file_path):
+        with st.spinner(f"Loading {file_name}.csv..."):
+            dataset = pd.read_csv(file_path)
+            st.session_state[file_name] = dataset
             return dataset
     else:
         st.error(f"File not found: {file_path}")
@@ -168,4 +183,66 @@ def plot_staked_amount_distribution(gmx_staked_last: pd.DataFrame):
     )
 
     # 5. Show plot in Streamlit
+    st.plotly_chart(fig, use_container_width=True)
+
+# Define combined discount
+def assign_discount(row):
+    v, s = row['pro_tier_v_sh'], row['pro_tier_s']
+    if v == 4 and s == 4: return 0.35
+    if v == 3 and s == 3: return 0.25
+    if v == 2 and s == 2: return 0.15
+    if v == 1 and s == 1: return 0
+    if v == 4 or s == 4: return 0.30
+    if v == 3 or s == 3: return 0.20
+    if v == 2 or s == 2: return 0.10
+    return 0
+
+import plotly.graph_objects as go
+import streamlit as st
+import pandas as pd
+
+def plot_user_distribution(df: pd.DataFrame, value_type: str = 'absolute', category: str = 'both'):
+    """
+    Plots user distribution (absolute or relative) for a selected category (both, only_volume, or only_staking),
+    split by pro_tier. Y-axis is log-scaled.
+
+    Parameters:
+        df (pd.DataFrame): Input dataframe with user counts and percentages.
+        value_type (str): 'absolute' or 'relative'
+        category (str): one of 'both', 'only_volume', 'only_staking'
+    """
+    assert value_type in ['absolute', 'relative'], "value_type must be 'absolute' or 'relative'"
+    assert category in ['both', 'only_volume', 'only_staking'], "category must be one of 'both', 'only_volume', 'only_staking'"
+
+    y_col = category if value_type == 'absolute' else f"{category}_perc"
+    y_title = "Number of Users (log scale)" if value_type == 'absolute' else "Percentage of Users (%)"
+
+    fig = go.Figure()
+
+    color_map = {
+        1: 'blue',
+        2: 'green',
+        3: 'orange',
+        4: 'red'
+    }
+
+    for tier in sorted(df['pro_tier'].unique()):
+        sub = df[df['pro_tier'] == tier]
+        fig.add_trace(go.Scatter(
+            x=sub['date'],
+            y=sub[y_col],
+            mode='lines+markers',
+            name=f'Pro {tier}',
+            line=dict(color=color_map.get(tier, None))
+        ))
+
+    fig.update_layout(
+        title=f"User Distribution - {category.replace('_', ' ').title()} ({value_type.title()})",
+        xaxis_title='Date',
+        yaxis_title=y_title,
+        height=700,
+        yaxis_type='log' if value_type == 'absolute' else 'linear',
+        legend_title="Pro Tier"
+    )
+
     st.plotly_chart(fig, use_container_width=True)

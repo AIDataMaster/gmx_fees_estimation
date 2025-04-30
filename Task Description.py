@@ -114,7 +114,7 @@ st.markdown(
 # Upload data
 daily_trading_volume = load_data(file_name='daily_trading_volume')
 gmx_staked_last = load_data(file_name='gmx_staked_last')
-# fees_data = load_data(file_name='fees_data')
+gmx_staking = load_data(file_name='gmx_staking')
 # daily_borrowing_fees = load_data(file_name='daily_borrowing_fees')
 
 # %%
