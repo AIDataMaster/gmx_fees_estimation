@@ -8,6 +8,7 @@ warnings.filterwarnings("ignore")
 
 from functions.functions import (
     centered_header, 
+    load_data,
     plot_trading_volume_distribution, 
     plot_staked_amount_distribution
 )
@@ -64,6 +65,10 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+# Upload data
+daily_trading_volume = load_data(file_name='daily_trading_volume')
+gmx_staked_last = load_data(file_name='gmx_staked_last')
 
 # Plot the Trading Volume Distribution chart
 daily_trading_volume = st.session_state['daily_trading_volume']
