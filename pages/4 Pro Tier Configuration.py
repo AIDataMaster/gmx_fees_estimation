@@ -160,7 +160,7 @@ edited_df = st.data_editor(
         "discount_volume": st.column_config.NumberColumn("Discount for Volume", format="%.2f"),
         "discount_staking": st.column_config.NumberColumn("Discount for Staking", format="%.2f"),
         "discount_both": st.column_config.NumberColumn("Bonus if Both", format="%.2f"),
-        "condition": st.column_config.SelectboxColumn("Condition Logic", options=["OR", "AND", "SUM", "BOTH"]),
+        "condition": st.column_config.SelectboxColumn("Condition Logic", options=["OR"]), # , "AND", "SUM", "BOTH"
     }
 )
 

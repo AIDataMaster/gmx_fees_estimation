@@ -241,7 +241,7 @@ def plot_user_distribution(df: pd.DataFrame, value_type: str = 'absolute', categ
         xaxis_title='Date',
         yaxis_title=y_title,
         height=700,
-        yaxis_type='log' if value_type == 'absolute' else 'linear',
+        # yaxis_type='log' if value_type == 'absolute' else 'linear',
         legend_title="Pro Tier"
     )
 
