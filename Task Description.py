@@ -3,8 +3,11 @@
 import streamlit as st
 
 from functions.functions import (
-    centered_header, load_data
+    centered_header, 
+    load_data, 
+    init_key
 )
+
 
 # %%
 # Set up the page configuration
@@ -112,8 +115,8 @@ st.markdown(
 )
 
 # Upload data
-daily_trading_volume = load_data(file_name='daily_trading_volume')
-gmx_staked_last = load_data(file_name='gmx_staked_last')
-gmx_staking = load_data(file_name='gmx_staking')
+daily_trading_volume = init_key("daily_trading_volume", lambda: load_data("daily_trading_volume"))
+gmx_staking = init_key("gmx_staking", lambda: load_data("gmx_staking"))
+gmx_staked_last = init_key("gmx_staked_last", lambda: load_data("gmx_staked_last"))
 
 # %%

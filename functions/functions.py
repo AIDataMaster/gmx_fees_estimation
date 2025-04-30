@@ -246,3 +246,9 @@ def plot_user_distribution(df: pd.DataFrame, value_type: str = 'absolute', categ
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+def init_key(key, loader_func=None, default_value=None):
+    if key not in st.session_state:
+        st.session_state[key] = loader_func() if loader_func else default_value
+
+    return st.session_state[key]

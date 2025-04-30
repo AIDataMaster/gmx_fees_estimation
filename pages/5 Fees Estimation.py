@@ -10,6 +10,7 @@ from functions.functions import (
     load_data,
     assign_discount,
     plot_user_distribution,
+    init_key
 )
 
 # %% Page config
@@ -24,10 +25,10 @@ st.markdown(
 )
 
 # %% Load data (uses session_state via load_data)
-daily_trading_volume = load_data(file_name='daily_trading_volume')
-gmx_staked_last = load_data(file_name='gmx_staked_last')
-gmx_staking = load_data(file_name='gmx_staking')
-fees_data = load_data(file_name='fees_data')
+daily_trading_volume = init_key("daily_trading_volume", lambda: load_data("daily_trading_volume"))
+gmx_staking = init_key("gmx_staking", lambda: load_data("gmx_staking"))
+gmx_staked_last = init_key("gmx_staked_last", lambda: load_data("gmx_staked_last"))
+fees_data = init_key("fees_data", lambda: load_data("fees_data"))
 
 # %% Section 1 — Calculate Pro Tiers
 with st.expander("1. Calculate Pro Tiers", expanded=False):

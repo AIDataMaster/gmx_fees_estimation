@@ -10,7 +10,8 @@ from functions.functions import (
     centered_header, 
     load_data,
     plot_trading_volume_distribution, 
-    plot_staked_amount_distribution
+    plot_staked_amount_distribution,
+    init_key
 )
 
 # %% main code
@@ -67,8 +68,8 @@ st.markdown(
 )
 
 # Upload data
-daily_trading_volume = load_data(file_name='daily_trading_volume')
-gmx_staked_last = load_data(file_name='gmx_staked_last')
+daily_trading_volume = init_key("daily_trading_volume", lambda: load_data("daily_trading_volume"))
+gmx_staked_last = init_key("gmx_staked_last", lambda: load_data("gmx_staked_last"))
 
 # Plot the Trading Volume Distribution chart
 plot_trading_volume_distribution(daily_trading_volume)
