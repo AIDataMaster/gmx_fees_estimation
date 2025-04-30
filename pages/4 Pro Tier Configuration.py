@@ -45,6 +45,13 @@ if "pro_tiers_temp" not in st.session_state:
 if "pro_tiers_selected_version" not in st.session_state:
     st.session_state["pro_tiers_selected_version"] = "<Select>"
 
+# %% Show current applied config
+if "pro_tiers_applied_version" in st.session_state:
+    applied = st.session_state["pro_tiers_applied_version"]
+    st.info(f"✅ **Using config:** `{applied}` for Fee Estimation")
+else:
+    st.warning("⚠️ **No config has been applied yet.** Click 'Apply for Fee Estimation' to activate.")
+
 # %% Reset / Load / Save / Apply Controls
 col1, col2, col3, col4 = st.columns([1.2, 2, 2, 2])
 
@@ -93,7 +100,12 @@ with col2:
 with col3:
     if st.button("✅ Apply for Fee Estimation"):
         st.session_state["pro_tiers_config"] = st.session_state["pro_tiers_temp"].copy()
-        st.success("✅ Config applied to Fee Estimation!")
+        current_ver = st.session_state.get("pro_tiers_selected_version", "<Select>")
+        if current_ver != "<Select>":
+            st.session_state["pro_tiers_applied_version"] = current_ver
+        else:
+            st.session_state["pro_tiers_applied_version"] = "(unsaved config)"
+        st.success(f"✅ Config applied to Fee Estimation! Now using `{st.session_state['pro_tiers_applied_version']}`.")
 
 with col4:
     config_name = st.text_input("💾 Save Config As", value="", placeholder="Enter config name")
