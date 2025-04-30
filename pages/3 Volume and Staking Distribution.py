@@ -71,7 +71,6 @@ daily_trading_volume = load_data(file_name='daily_trading_volume')
 gmx_staked_last = load_data(file_name='gmx_staked_last')
 
 # Plot the Trading Volume Distribution chart
-daily_trading_volume = st.session_state['daily_trading_volume']
 plot_trading_volume_distribution(daily_trading_volume)
 
 # Add a section header before the Staking Amount Distribution plot
@@ -87,5 +86,4 @@ st.markdown(
 )
 
 # Plot the Staking Amount Distribution chart
-gmx_staked_last = st.session_state['gmx_staked_last']
 plot_staked_amount_distribution(gmx_staked_last)
