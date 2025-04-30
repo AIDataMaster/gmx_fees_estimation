@@ -29,7 +29,7 @@ default_pro_tiers = pd.DataFrame({
     "volume_max": [5_000_000, 40_000_000, 200_000_000, None],
     "staking_min": [0, 20_000, 50_000, 100_000],
     "discount_volume": [0.00, 0.10, 0.20, 0.30],
-    "discount_staking": [0.00, 0.00, 0.00, 0.00],
+    "discount_staking": [0.00, 0.10, 0.20, 0.30],
     "discount_both": [0.00, 0.15, 0.25, 0.35],
     "condition": ["OR", "OR", "OR", "OR"]
 })

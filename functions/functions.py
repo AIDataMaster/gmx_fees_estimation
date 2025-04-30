@@ -7,6 +7,7 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
+import time
 
 from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
@@ -252,3 +253,61 @@ def init_key(key, loader_func=None, default_value=None):
         st.session_state[key] = loader_func() if loader_func else default_value
 
     return st.session_state[key]
+
+def render_final_tiers_table(config_df: pd.DataFrame):
+    """
+    Display formatted Pro Tier configuration table as final output.
+    Adds a new column 'discount_final' if missing (based on volume or both).
+    """
+    df = config_df.copy().fillna({"condition": "OR"}).dropna(how="all")
+
+    if "discount_final" not in df.columns:
+        df["discount_final"] = df["discount_both"]  # Or any logic you prefer
+
+    st.markdown("### ✅ Final Pro Tier Table")
+    st.dataframe(
+        df.style.format({
+            "volume_min": "${:,.0f}",
+            "volume_max": "${:,.0f}",
+            "staking_min": "{:,.0f}",
+            "discount_volume": "{:.2%}",
+            "discount_staking": "{:.2%}",
+            "discount_both": "{:.2%}",
+            "discount_final": "{:.2%}"
+        }),
+        use_container_width=True
+    )
+
+def assign_tiers_vectorized(series: pd.Series, thresholds: list) -> pd.Series:
+    try:
+        labels = list(range(1, len(thresholds) + 1))
+        return pd.cut(series, bins=[-np.inf] + thresholds[1:] + [np.inf], labels=labels, right=False).astype(int)
+    except Exception:
+        return pd.Series([1] * len(series), index=series.index)
+
+def assign_discount_advanced(df: pd.DataFrame, config: pd.DataFrame) -> pd.Series:
+    try:
+        # Map tiers to discounts from config
+        discount_volume_map = dict(zip(range(1, len(config) + 1), config["discount_volume"]))
+        discount_staking_map = dict(zip(range(1, len(config) + 1), config["discount_staking"]))
+        discount_both_map = dict(zip(range(1, len(config) + 1), config["discount_both"]))
+        condition_map = dict(zip(range(1, len(config) + 1), config["condition"]))
+
+        # Get values
+        v = df["pro_tier_v_sh"]
+        s = df["pro_tier_s"]
+
+        # Tier-level condition lookup
+        tier_condition = v.where(v == s, v.combine(s, max)).map(condition_map)
+        same_tier = (v == s)
+
+        # Final discount logic
+        discount = np.where(
+            same_tier,
+            v.map(discount_both_map),
+            np.maximum(v.map(discount_volume_map), s.map(discount_staking_map))
+        )
+
+        return discount
+    except Exception:
+        return pd.Series([0] * len(df), index=df.index)
