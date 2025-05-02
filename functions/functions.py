@@ -238,7 +238,7 @@ def plot_volume_by_staking_segment(daily_trading_volume: pd.DataFrame, gmx_stake
     fig.update_traces(textposition='outside')
     fig.update_layout(
         title_x=0,
-        xaxis_title='Staked GMX Segment',
+        xaxis_title='Staked Amount Segment',
         yaxis_title='Total Trading Volume (Last 30 Days)',
         uniformtext_minsize=8,
         uniformtext_mode='hide'
