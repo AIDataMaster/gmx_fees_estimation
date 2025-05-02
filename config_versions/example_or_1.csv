@@ -1,0 +1,6 @@
+tier,volume_min,volume_max,staking_min,discount_bps_pos,discount_bps_neg,discount_both_bps_pos,discount_both_bps_neg
+Pro 1,0.0,5000000.0,0.0,4.0,6.0,4.0,6.0
+Pro 2,5000000.0,40000000.0,20000.0,3.5,5.5,3.25,5.25
+Pro 3,40000000.0,200000000.0,50000.0,3.0,5.0,2.75,4.75
+Pro 4,200000000.0,,100000.0,2.5,4.5,2.25,4.25
+Pro 5,3000.0,,,,,,

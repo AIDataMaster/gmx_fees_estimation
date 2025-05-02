@@ -1,5 +1,0 @@
-tier,volume_min,volume_max,staking_min,discount_volume,discount_staking,discount_both,condition
-Pro 1,0,5000000.0,0,0.0,0.0,0.0,OR
-Pro 2,5000000,40000000.0,20000,0.1,0.0,0.15,OR
-Pro 3,40000000,200000000.0,50000,0.2,0.0,0.25,OR
-Pro 4,200000000,,100000,0.3,0.0,0.35,OR

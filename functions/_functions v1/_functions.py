@@ -254,44 +254,29 @@ def init_key(key, loader_func=None, default_value=None):
 
     return st.session_state[key]
 
-def render_final_tiers_table(config_df: pd.DataFrame, logic_label: str = "SUM"):
+def render_final_tiers_table(config_df: pd.DataFrame):
     """
-    Display formatted Pro Tier configuration table based on logic.
-    OR logic tables show BPS values and derived % discount vs baseline.
-    SUM logic tables show configured percentage discounts.
+    Display formatted Pro Tier configuration table as final output.
+    Adds a new column 'discount_final' if missing (based on volume or both).
     """
-    df = config_df.copy().dropna(how="all")
+    df = config_df.copy().fillna({"condition": "OR"}).dropna(how="all")
 
-    if logic_label == "OR":
-        st.markdown("### ✅ Final Pro Tier Table (OR Logic)")
-        st.dataframe(
-            df.style.format({
-                "volume_min": "${:,.0f}",
-                "staking_min": "{:,.0f}",
-                "discount_bps_pos": "{:.6f}",
-                "discount_bps_neg": "{:.6f}",
-                "discount_both_bps_pos": "{:.6f}",
-                "discount_both_bps_neg": "{:.6f}",
-                "discount_pos": "{:.2%}",
-                "discount_neg": "{:.2%}",
-                "discount_both_pos": "{:.2%}",
-                "discount_both_neg": "{:.2%}",
-            }),
-            use_container_width=True
-        )
+    if "discount_final" not in df.columns:
+        df["discount_final"] = df["discount_both"]  # Or any logic you prefer
 
-    else:  # SUM logic
-        st.markdown("### ✅ Final Pro Tier Table (SUM Logic)")
-        st.dataframe(
-            df.style.format({
-                "volume_min": "${:,.0f}",
-                "staking_min": "{:,.0f}",
-                "discount_volume": "{:.2%}",
-                "discount_staking": "{:.2%}",
-                "discount_both": "{:.2%}",
-            }),
-            use_container_width=True
-        )
+    st.markdown("### ✅ Final Pro Tier Table")
+    st.dataframe(
+        df.style.format({
+            "volume_min": "${:,.0f}",
+            "volume_max": "${:,.0f}",
+            "staking_min": "{:,.0f}",
+            "discount_volume": "{:.2%}",
+            "discount_staking": "{:.2%}",
+            "discount_both": "{:.2%}",
+            "discount_final": "{:.2%}"
+        }),
+        use_container_width=True
+    )
 
 def assign_tiers_vectorized(series: pd.Series, thresholds: list) -> pd.Series:
     try:
@@ -299,26 +284,6 @@ def assign_tiers_vectorized(series: pd.Series, thresholds: list) -> pd.Series:
         return pd.cut(series, bins=[-np.inf] + thresholds[1:] + [np.inf], labels=labels, right=False).astype(int)
     except Exception:
         return pd.Series([1] * len(series), index=series.index)
-
-def get_default_pro_tiers_sum():
-    return pd.DataFrame({
-        "tier": ["Pro 1", "Pro 2", "Pro 3", "Pro 4"],
-        "volume_min": [0, 3_000_000, 25_000_000, 100_000_000],
-        "discount_volume": [0.05, 0.10, 0.15, 0.20],
-        "staking_min": [10_000, 20_000, 50_000, 60_000],
-        "discount_staking": [0.03, 0.05, 0.07, 0.10],
-    })
-
-def get_default_pro_tiers_or():
-    return pd.DataFrame({
-        "tier": ["Pro 1", "Pro 2", "Pro 3", "Pro 4"],
-        "volume_min": [0, 5_000_000, 40_000_000, 200_000_000],
-        "staking_min": [0, 20_000, 50_000, 100_000],
-        "discount_bps_pos": [0.0004, 0.00035, 0.0003, 0.00025],
-        "discount_bps_neg": [0.0006, 0.00055, 0.0005, 0.00045],
-        "discount_both_bps_pos": [0.0004, 0.000325, 0.000275, 0.000225],
-        "discount_both_bps_neg": [0.0006, 0.000525, 0.000475, 0.000425],
-    })
 
 def assign_discount_advanced(df: pd.DataFrame, config: pd.DataFrame) -> pd.Series:
     try:
@@ -330,7 +295,7 @@ def assign_discount_advanced(df: pd.DataFrame, config: pd.DataFrame) -> pd.Serie
 
         # Get values
         v = df["pro_tier_v_sh"]
-        s = df["pro_tier_s_sh"]
+        s = df["pro_tier_s"]
 
         # Tier-level condition lookup
         tier_condition = v.where(v == s, v.combine(s, max)).map(condition_map)
@@ -347,77 +312,24 @@ def assign_discount_advanced(df: pd.DataFrame, config: pd.DataFrame) -> pd.Serie
     except Exception:
         return pd.Series([0] * len(df), index=df.index)
 
-def assign_discount_advanced_percent(df: pd.DataFrame, config: pd.DataFrame) -> pd.DataFrame:
-    try:
-        n = len(config)
-        discount_pos_map = dict(zip(range(1, n + 1), config["discount_pos"]))
-        discount_neg_map = dict(zip(range(1, n + 1), config["discount_neg"]))
-        discount_both_pos_map = dict(zip(range(1, n + 1), config["discount_both_pos"]))
-        discount_both_neg_map = dict(zip(range(1, n + 1), config["discount_both_neg"]))
-        condition_map = dict(zip(range(1, n + 1), config.get("condition", ["OR"] * n)))
+def get_default_pro_tiers_sum():
+    return pd.DataFrame({
+        "tier": ["Pro 1", "Pro 2", "Pro 3", "Pro 4"],
+        "volume_min": [0, 3_000_000, 25_000_000, 100_000_000],
+        "volume_max": [3_000_000, 25_000_000, 100_000_000, None],
+        "discount_volume": [0.05, 0.10, 0.15, 0.20],
+        "staking_min": [10_000, 20_000, 50_000, 60_000],
+        "discount_staking": [0.03, 0.05, 0.07, 0.10],
+    })
 
-        v = df["pro_tier_v_sh"]
-        s = df["pro_tier_s_sh"]
-        same_tier = (v == s)
-        tier_condition = v.where(same_tier, v.combine(s, max)).map(condition_map)
-
-        discount_pos = np.where(
-            same_tier,
-            v.map(discount_both_pos_map),
-            np.maximum(v.map(discount_pos_map), s.map(discount_pos_map))
-        )
-
-        discount_neg = np.where(
-            same_tier,
-            v.map(discount_both_neg_map),
-            np.maximum(v.map(discount_neg_map), s.map(discount_neg_map))
-        )
-
-        return pd.DataFrame({
-            "pro_discount_pos": discount_pos,
-            "pro_discount_neg": discount_neg
-        }, index=df.index)
-
-    except Exception:
-        return pd.DataFrame({
-            "pro_discount_pos": [0] * len(df),
-            "pro_discount_neg": [0] * len(df)
-        }, index=df.index)
-
-
-def assign_discount_advanced_bps(df: pd.DataFrame, config: pd.DataFrame) -> pd.DataFrame:
-    try:
-        n = len(config)
-        discount_bps_pos_map = dict(zip(range(1, n + 1), config["discount_bps_pos"]))
-        discount_bps_neg_map = dict(zip(range(1, n + 1), config["discount_bps_neg"]))
-        discount_both_bps_pos_map = dict(zip(range(1, n + 1), config["discount_both_bps_pos"]))
-        discount_both_bps_neg_map = dict(zip(range(1, n + 1), config["discount_both_bps_neg"]))
-        condition_map = dict(zip(range(1, n + 1), config.get("condition", ["OR"] * n)))
-
-        v = df["pro_tier_v_sh"]
-        s = df["pro_tier_s_sh"]
-        same_tier = (v == s)
-        tier_condition = v.where(same_tier, v.combine(s, max)).map(condition_map)
-
-        discount_bps_pos = np.where(
-            same_tier,
-            v.map(discount_both_bps_pos_map),
-            np.minimum(v.map(discount_bps_pos_map), s.map(discount_bps_pos_map))
-        )
-
-        discount_bps_neg = np.where(
-            same_tier,
-            v.map(discount_both_bps_neg_map),
-            np.minimum(v.map(discount_bps_neg_map), s.map(discount_bps_neg_map))
-        )
-
-        return pd.DataFrame({
-            "pro_discount_bps_pos": discount_bps_pos,
-            "pro_discount_bps_neg": discount_bps_neg
-        }, index=df.index)
-
-    except Exception:
-        return pd.DataFrame({
-            "pro_discount_bps_pos": [0.0004] * len(df),
-            "pro_discount_bps_neg": [0.0006] * len(df)
-        }, index=df.index)
+def get_default_pro_tiers_or():
+    return pd.DataFrame({
+        "tier": ["Pro 1", "Pro 2", "Pro 3", "Pro 4"],
+        "volume_min": [0, 5_000_000, 40_000_000, 200_000_000],
+        "volume_max": [5_000_000, 40_000_000, 200_000_000, None],
+        "staking_min": [0, 20_000, 50_000, 100_000],
+        "discount_bps_pos": [4, 3.5, 3, 2.5],
+        "discount_bps_neg": [6, 5.5, 5, 4.5],
+        "discount_both_bps_pos": [4, 3.25, 2.75, 2.25],
+        "discount_both_bps_neg": [6, 5.25, 4.75, 4.25],
+    })
