@@ -11,6 +11,7 @@ from functions.functions import (
     load_data,
     plot_trading_volume_distribution, 
     plot_staked_amount_distribution,
+    plot_volume_by_staking_segment,
     init_key
 )
 
@@ -74,17 +75,21 @@ gmx_staked_last = init_key("gmx_staked_last", lambda: load_data("gmx_staked_last
 # Plot the Trading Volume Distribution chart
 plot_trading_volume_distribution(daily_trading_volume)
 
-# Add a section header before the Staking Amount Distribution plot
+# --- New Section: Distribution by Staking Segment ---
 st.markdown(
     """
     ---
-    ### Distribution of Staked Amount (Latest Snapshot)
+    ### Distribution by Staking Segment
 
-    Below we present the distribution of GMX staking amounts segmented into staking brackets. 
-    This allows for better understanding of user loyalty and supports defining staking-based tiers.
+    Compare staking concentration and associated trading behavior across user tiers.
     """,
     unsafe_allow_html=True
 )
 
-# Plot the Staking Amount Distribution chart
-plot_staked_amount_distribution(gmx_staked_last)
+col1, col2 = st.columns(2)
+
+with col1:
+    plot_staked_amount_distribution(gmx_staked_last)
+
+with col2:
+    plot_volume_by_staking_segment(daily_trading_volume, gmx_staked_last)

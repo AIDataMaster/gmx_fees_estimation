@@ -11,6 +11,7 @@ import time
 
 from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
+from plotly.colors import sequential, sample_colorscale
 
 # %% functions
 
@@ -186,6 +187,65 @@ def plot_staked_amount_distribution(gmx_staked_last: pd.DataFrame):
     # 5. Show plot in Streamlit
     st.plotly_chart(fig, use_container_width=True)
 
+def plot_volume_by_staking_segment(daily_trading_volume: pd.DataFrame, gmx_staked_last: pd.DataFrame):
+    """
+    Plots total trading volume (last 30 days) grouped by staking segments from latest snapshot.
+    """
+
+    # Step 1: Compute 30-day trading volume per trader
+    today = datetime.today()
+    thirty_days_ago = today - timedelta(days=30)
+    daily_trading_volume['block_date'] = pd.to_datetime(daily_trading_volume['block_date'])
+
+    volume_30d = (
+        daily_trading_volume[daily_trading_volume['block_date'].dt.date >= thirty_days_ago.date()]
+        .groupby('trader')['trading_volume']
+        .sum()
+        .reset_index()
+    )
+
+    # Step 2: Merge staking snapshot with volume (staking = base)
+    df = gmx_staked_last.rename(columns={'account': 'trader'}).copy()
+    df = df.merge(volume_30d, on='trader', how='left')
+    df['trading_volume'] = df['trading_volume'].fillna(0)
+
+    # Step 3: Define staking segments
+    bins = [0, 1, 100, 500, 1_000, 2_000, 5_000, 10_000, 20_000, 50_000, 100_000, float('inf')]
+    labels = [
+        '<1 GMX', '1-100 GMX', '100-500 GMX', '500-1k GMX', '1k-2k GMX',
+        '2k-5k GMX', '5k-10k GMX', '10k–20k GMX', '20k–50k GMX',
+        '50k–100k GMX', '>100k GMX'
+    ]
+    df['staked_segment'] = pd.cut(df['staked_amount'], bins=bins, labels=labels, right=False)
+
+    # Step 4: Aggregate
+    staker_counts = df.groupby('staked_segment')['trader'].count().reset_index(name='trader_count')
+    total_volume = df.groupby('staked_segment')['trading_volume'].sum().reset_index(name='total_volume')
+
+    summary = staker_counts.merge(total_volume, on='staked_segment')
+
+    # Step 5: Plot
+    fig = px.bar(
+        summary,
+        x='staked_segment',
+        y='total_volume',
+        text='trader_count',
+        labels={'staked_segment': 'Staked Segment', 'total_volume': 'Total Trading Volume'},
+        title='Distribution of Trading Volume by Staking Segment (30D) and Count of Stakers',
+        height=700
+    )
+
+    fig.update_traces(textposition='outside')
+    fig.update_layout(
+        title_x=0,
+        xaxis_title='Staked GMX Segment',
+        yaxis_title='Total Trading Volume (Last 30 Days)',
+        uniformtext_minsize=8,
+        uniformtext_mode='hide'
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
 # Define combined discount
 def assign_discount(row):
     v, s = row['pro_tier_v_sh'], row['pro_tier_s']
@@ -197,10 +257,6 @@ def assign_discount(row):
     if v == 3 or s == 3: return 0.20
     if v == 2 or s == 2: return 0.10
     return 0
-
-import plotly.graph_objects as go
-import streamlit as st
-import pandas as pd
 
 def plot_user_distribution(df: pd.DataFrame, value_type: str = 'absolute', category: str = 'both'):
     """
@@ -220,12 +276,19 @@ def plot_user_distribution(df: pd.DataFrame, value_type: str = 'absolute', categ
 
     fig = go.Figure()
 
-    color_map = {
-        1: 'blue',
-        2: 'green',
-        3: 'orange',
-        4: 'red'
-    }
+    tier_levels = sorted(df['pro_tier'].unique())
+
+    # Use only the darker end of the blues
+    dark_blues = sequential.Blues[4:]  # Skip lightest colors (0–3)
+
+    if len(tier_levels) <= len(dark_blues):
+        colors = dark_blues[:len(tier_levels)]
+    else:
+        # Interpolate if more tiers than colors
+        normalized_positions = [i / (len(tier_levels) - 1) for i in range(len(tier_levels))]
+        colors = sample_colorscale(dark_blues, normalized_positions)
+
+    color_map = {tier: colors[i] for i, tier in enumerate(tier_levels)}
 
     for tier in sorted(df['pro_tier'].unique()):
         sub = df[df['pro_tier'] == tier]
